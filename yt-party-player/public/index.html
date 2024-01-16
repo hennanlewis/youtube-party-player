@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>YouTube Party Watcher</title>
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #player {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="player"></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const eventPlayerType = {
+            "-1": "UNSTARTED",
+            "0": "ENDED",
+            "1": "PLAYING",
+            "2": "PAUSED",
+            "3": "BUFFERING",
+            "5": "CUED"
+        }
+        const socket = io()
+        let tag = document.createElement("script")
+
+        tag.src = "https://www.youtube.com/iframe_api"
+        let [firstScriptTag] = document.getElementsByTagName("script")
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+
+        let player
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player("player", {
+                videoId: "J_Rs9h8eegE",
+                events: {
+                    "onReady": onPlayerReady,
+                    "onStateChange": onPlayerStateChange,
+                }
+            })
+        }
+
+        function onPlayerReady(event) {
+            event.target.playVideo()
+            console.log(event.target)
+        }
+
+        // let done = false
+        function onPlayerStateChange(event) {
+            // console.log(arguments.callee.name, event.data, player)
+            // if (event.data == YT.PlayerState.PLAYING && !done) {
+            //     setTimeout(stopVideo, 6000)
+            //     done = true
+            // }
+            socket.emit("onPlayerStateChange", player.playerInfo.currentTime, eventPlayerType[event.data], socket.id)
+            const myCurrentPlayerState = eventPlayerType[player.playerInfo.playerState]
+        }
+        function stopVideo() {
+            console.log(arguments.callee.name)
+            player.stopVideo()
+        }
+
+        socket.on("onPlayerStateChange", (videoTime, eventReceivedType, socketEmitter) => {
+            const myCurrentPlayerState = eventPlayerType[player.playerInfo.playerState]
+
+            if (eventReceivedType == "PAUSED" && myCurrentPlayerState == "PLAYING") {
+                console.log(`Usuário ${socketEmitter} pausou o vídeo`)
+                player.pauseVideo()
+                player.seekTo(videoTime)
+            }
+
+            if (eventReceivedType == "PLAYING" && myCurrentPlayerState == "PAUSED") {
+                console.log(`Usuário ${socketEmitter} executou o vídeo`)
+                player.seekTo(videoTime)
+                player.playVideo()
+            }
+
+            if (myCurrentPlayerState == "UNSTARTED" && eventReceivedType != "UNSTARTED") {
+                console.log(`Usuário ${socketEmitter} iniciou o vídeo`)
+                player.playVideo()
+            }
+        })
+
+    </script>
+</body>
+
+</html>
