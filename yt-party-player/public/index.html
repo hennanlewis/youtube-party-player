@@ -1,95 +1,107 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>YouTube Party Watcher</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;900&family=Signika:wght@300..700&display=swap"
+        rel="stylesheet">
     <style>
         body {
             display: flex;
-            margin: 0;
-            width: 100vw;
+            align-items: center;
+            background: url("/bg.jpg");
+            background-size: cover;
+            background-position: center center;
             height: 100vh;
+            overflow: hidden;
         }
 
-        #player {
-            width: 100%;
-            height: 100%;
+        main {
+            display: flex;
+            flex-direction: column;
+            row-gap: 4px;
+            margin: 0 auto 2rem;
+            width: 20rem;
+            max-width: 90vw;
+            background: #0003;
+            padding: 1rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(8.7px);
+            -webkit-backdrop-filter: blur(8.7px);
+            border: 1px solid rgba(255, 255, 255, 0.74);
+        }
+
+        .signika-text {
+            font-family: "Signika", sans-serif;
+            font-optical-sizing: auto;
+            font-style: normal;
+            font-variation-settings: "GRAD" 0;
+        }
+
+        h2 {
+            margin: 0;
+            line-height: 1;
+            color: #fff;
+        }
+
+        input {
+            height: 1.5rem;
+            background-color: #fffa;
+            border: 1px solid #fff;
+            border-radius: 4px;
+        }
+
+        button {
+            height: 2rem;
+            background: linear-gradient(#ce0513, #640007);
+            border: 0;
+            color: #fff;
+            font-size: medium;
+            font-weight: 700;
+            text-shadow: 1px 0 #000;
+            text-transform: uppercase;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: linear-gradient(#91040d, #91040d);
         }
     </style>
 </head>
 
 <body>
-    <div id="player"></div>
-    <script src="/socket.io/socket.io.js"></script>
+    <main class="signika-text">
+        <h2 for="videoLink">Link do vídeo:</h2>
+        <input type="text" id="videoLink" placeholder="Cole o link aqui">
+        <button onclick="iniciarParty()">Iniciar party</button>
+    </main>
+
     <script>
-        const eventPlayerType = {
-            "-1": "UNSTARTED",
-            "0": "ENDED",
-            "1": "PLAYING",
-            "2": "PAUSED",
-            "3": "BUFFERING",
-            "5": "CUED"
-        }
-        const socket = io()
-        let tag = document.createElement("script")
+        function iniciarParty() {
+            const videoLinkInput = document.getElementById('videoLink')
+            const videoLink = videoLinkInput.value.trim()
 
-        tag.src = "https://www.youtube.com/iframe_api"
-        let [firstScriptTag] = document.getElementsByTagName("script")
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+            // Verificar se o link é um link válido do YouTube
+            const regex = /^(https?:\/\/)?(www\.)?(youtube\.com\/(watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+            const match = videoLink.match(regex)
 
-        let player
-        function onYouTubeIframeAPIReady() {
-            player = new YT.Player("player", {
-                videoId: "J_Rs9h8eegE",
-                events: {
-                    "onReady": onPlayerReady,
-                    "onStateChange": onPlayerStateChange,
-                }
-            })
-        }
+            if (match) {
+                // Extrair o ID do vídeo
+                const videoId = match[5]
 
-        function onPlayerReady(event) {
-            event.target.playVideo()
-            console.log(event.target)
-        }
-
-        // let done = false
-        function onPlayerStateChange(event) {
-            // console.log(arguments.callee.name, event.data, player)
-            // if (event.data == YT.PlayerState.PLAYING && !done) {
-            //     setTimeout(stopVideo, 6000)
-            //     done = true
-            // }
-            socket.emit("onPlayerStateChange", player.playerInfo.currentTime, eventPlayerType[event.data], socket.id)
-            const myCurrentPlayerState = eventPlayerType[player.playerInfo.playerState]
-        }
-        function stopVideo() {
-            console.log(arguments.callee.name)
-            player.stopVideo()
-        }
-
-        socket.on("onPlayerStateChange", (videoTime, eventReceivedType, socketEmitter) => {
-            const myCurrentPlayerState = eventPlayerType[player.playerInfo.playerState]
-
-            if (eventReceivedType == "PAUSED" && myCurrentPlayerState == "PLAYING") {
-                console.log(`Usuário ${socketEmitter} pausou o vídeo`)
-                player.pauseVideo()
-                player.seekTo(videoTime)
+                // Redirecionar para o link do YouTube com o ID do vídeo
+                window.location.href = `/${videoId}`
+            } else {
+                alert('Por favor, insira um link válido do YouTube.')
             }
-
-            if (eventReceivedType == "PLAYING" && myCurrentPlayerState == "PAUSED") {
-                console.log(`Usuário ${socketEmitter} executou o vídeo`)
-                player.seekTo(videoTime)
-                player.playVideo()
-            }
-
-            if (myCurrentPlayerState == "UNSTARTED" && eventReceivedType != "UNSTARTED") {
-                console.log(`Usuário ${socketEmitter} iniciou o vídeo`)
-                player.playVideo()
-            }
-        })
-
+        }
     </script>
+
 </body>
 
 </html>
